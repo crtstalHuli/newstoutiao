@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Slides &laquo; Admin</title>
+  <link rel="stylesheet" href="/public/vendors/bootstrap/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/vendors/font-awesome/css/font-awesome.css">
+  <link rel="stylesheet" href="/public/vendors/nprogress/nprogress.css">
+  <link rel="stylesheet" href="/public/css/admin.css">
+  <script src="/public/vendors/nprogress/nprogress.js"></script>
+</head>
+<body>
+  <script>NProgress.start()</script>
+
+  <div class="main">
+    {{include './common/navbar.html'}}
+    <div class="container-fluid">
+      <div class="page-title">
+        <h1>图片轮播</h1>
+      </div>
+      <!-- 有错误信息时展示 -->
+      <!-- <div class="alert alert-danger">
+        <strong>错误！</strong>发生XXX错误
+      </div> -->
+      <div class="row">
+        <div class="col-md-4">
+          <form onsubmit="return false" enctype="multipart/form-data" method="post">
+            <h2>添加新轮播内容</h2>
+            <div class="form-group">
+              <label for="image">图片</label>
+              <!-- show when image chose -->
+              <img id="preview" class="help-block thumbnail" style="width:200px;display: none">
+              <input id="f" class="photo form-control" onchange="change()" type="file">
+              <input type="hidden" name="img">
+            </div>
+            <div class="form-group">
+              <label for="text">文本</label>
+              <input id="text" class="form-control" name="text" type="text" placeholder="文本">
+            </div>
+            <div class="form-group">
+              <label for="link">链接</label>
+              <input id="link" class="form-control" name="link" type="text" placeholder="链接">
+            </div>
+            <div class="form-group">
+              <button class="addPhoto btn btn-primary" type="submit">添加</button>
+            </div>
+          </form>
+        </div>
+        <div class="col-md-8">
+          <div class="page-action">
+            <!-- show when multiple checked -->
+            <a class="btn btn-danger btn-sm" href="javascript:;" style="display: none">批量删除</a>
+          </div>
+          <table class="table table-striped table-bordered table-hover">
+            <thead>
+              <tr>
+                <th class="text-center" width="40"><input type="checkbox"></th>
+                <th class="text-center">图片</th>
+                <th>文本</th>
+                <th>链接</th>
+                <th class="text-center" width="100">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{each data}}
+              <tr>
+                <td class="text-center"><input type="checkbox"></td>
+                <td class="text-center"><img class="slide" src="{{$value.img}}"></td>
+                <td>{{$value.text}}</td>
+                <td>{{$value.link}}</td>
+                <td class="text-center">
+                  <a href="javascript:;" class="del btn btn-danger btn-xs" data-del={{$value.swipe_id}}>删除</a>
+                </td>
+              </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{include './common/aside.html'}}
+
+  <script src="/public/vendors/jquery/jquery.js"></script>
+  <script src="/public/vendors/bootstrap/js/bootstrap.js"></script>
+  <script src="/public/vendors/placeImage.js"></script>
+  <script src="/public/vendors/layer/layer.js"></script>
+  <script>
+    $(function(){
+
+      // 上传轮播图
+      // 监听按钮的点击事件
+      $('.addPhoto').click(function(){
+
+        var photo = $('input[name="img"]').val();
+        if(!photo){
+          layer.msg('请上传图片再提交',{icon:2});
+          return;
+        }
+
+        let data = $('form').serialize();
+        $.post('/slides',data,function(res){
+          if(res.code == 200){
+            layer.msg(res.message,{icon:1,time:1000},function(){
+              location.href = '/slides'
+            })
+          }else {
+            layer.msg(res.message,{icon:2});
+          }
+        })
+
+      })
+
+      $('.photo').change(function(){
+
+        if(this.files.length == 0){
+          return;
+        }
+        $('#preview').css('display','block');
+        var file = this.files[0];
+        var formdata = new FormData();
+        formdata.append('feature',file);
+  
+        $.ajax({
+          url:'/uploadFeature',
+          data:formdata,
+          type:'post',
+          processData:false,
+          contentType:false
+        }).then(res =>{
+          
+          // 把图片的原路径设置隐藏域显示在表单中，方便序列化带到后台去存储
+          $("input[name='img']").val(res.fullPath);
+          console.log(res.fullPath);
+        })
+      })
+
+      // 监听删除按钮，委托
+      $('tbody').on('click','.del',function(){
+        if(!confirm('确定要上传吗？')){
+          return;
+        }
+        var _salf = $(this);
+        var swipeId = _salf.attr('data-del');
+        console.log(swipeId);
+        $.get('/delSwipe',{swipeId},function(res){
+          if(res.code == 200){
+            layer.msg(res.message,{icon:1,time:500},function(){
+              // 删除数据
+              _salf.parents('tr').remove();
+            })
+          }else {
+            layer.msg(res.message,{icon:2});
+          }
+        })
+       
+      })
+      
+    })
+      
+  
+  </script>
+  <script>NProgress.done()</script>
+</body>
+</html>
